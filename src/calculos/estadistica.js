@@ -12,24 +12,26 @@ function roundToDecimalPlaces(value, decimalPlaces) {
     return Math.round(value * factor) / factor;
 }
 
-// Función manual para calcular curtosis muestral (excess kurtosis)
-// Esta es la curtosis de Fisher-Pearson, que es 0 para una distribución normal.
-function sampleKurtosis(data) {
+function kurtosisExcelStyle(data) {
     const n = data.length;
-    if (n < 4) { // Se requieren al menos 4 puntos de datos para una estimación significativa
-        return NaN; // O manejar como "N/A" en el resultado
-    }
-    const mean = ss.mean(data);
-    const m4 = data.reduce((sum, x) => sum + Math.pow(x - mean, 4), 0);
+    if (n < 4) return NaN;
+
+    const mean = data.reduce((a, b) => a + b, 0) / n;
     const m2 = data.reduce((sum, x) => sum + Math.pow(x - mean, 2), 0);
+    const m4 = data.reduce((sum, x) => sum + Math.pow(x - mean, 4), 0);
 
-    const numerator = n * (n + 1) * m4;
-    const denominator = (n - 1) * (n - 2) * (n - 3) * Math.pow(m2 / n, 2);
+    const s2 = m2 / (n - 1); // varianza muestral
+    const s4 = Math.pow(s2, 2);
 
-    if (denominator === 0) return NaN; // Evitar división por cero
+    const numerator = ((n * (n + 1)) / ((n - 1) * (n - 2) * (n - 3))) * (m4 / s4);
+    const correction = (3 * Math.pow(n - 1, 2)) / ((n - 2) * (n - 3));
+    const excessKurtosis = numerator - correction;
 
-    return (numerator / denominator) - (3 * Math.pow(n - 1, 2) / ((n - 2) * (n - 3)));
+    const beta2 = excessKurtosis + 3;
+
+    return excessKurtosis
 }
+
 
 
 export function calcularEstadisticasDesordenados(datos) {
@@ -115,7 +117,7 @@ export function calcularEstadisticasDesordenados(datos) {
         const tercerCuartil = roundToDecimalPlaces(ss.quantile(sortedNumeros, 0.75), 2);
         const rangoIntercuartil = roundToDecimalPlaces(tercerCuartil - primerCuartil, 2);
         const coeficienteAsimetria = roundToDecimalPlaces(ss.sampleSkewness(numeros), 2);
-        const coeficienteCurtosis = roundToDecimalPlaces(sampleKurtosis(numeros), 2);
+        const coeficienteCurtosis = roundToDecimalPlaces(kurtosisExcelStyle(numeros), 2);
 
         return {
             totalDatos: n,
@@ -455,7 +457,7 @@ export function calcularEstadisticasOrdenados(datosCrudos) { // Cambiado a datos
 
         // Curtosis y Asimetría para datos no agrupados, ya que se calculan sobre los 'numeros' originales
         const coeficienteAsimetria = roundToDecimalPlaces(ss.sampleSkewness(numeros), 4); // Redondeo a 4 decimales
-        const coeficienteCurtosis = roundToDecimalPlaces(sampleKurtosis(numeros), 4); // Redondeo a 4 decimales
+        const coeficienteCurtosis = roundToDecimalPlaces(kurtosisExcelStyle(numeros), 4); // Redondeo a 4 decimales
 
 
         return {
